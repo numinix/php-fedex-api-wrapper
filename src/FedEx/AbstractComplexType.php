@@ -33,7 +33,7 @@ abstract class AbstractComplexType
      *
      * @param array|null $options Data as key => value array
      */
-    public function __construct(array $options = null)
+    public function __construct(?array $options = null)
     {
         if (is_array($options)) {
             foreach ($options as $name => $value) {
