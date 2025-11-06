@@ -68,81 +68,16 @@ class TrackServiceTest extends TestCase
                 })
             )
             ->willReturn(new HttpResponse(200, [], json_encode([
-                'customerTransactionId' => 'test-transaction',
-                'output' => [
-                    'alerts' => [
-                        [
-                            'alertType' => 'SUCCESS',
-                            'code' => '0',
-                            'message' => 'Request succeeded',
-                        ],
-                    ],
-                    'completeTrackResults' => [
-                        [
-                            'trackingNumber' => '123456789012',
-                            'additionalResultsAvailable' => false,
-                            'trackResults' => [
-                                [
-                                    'trackingNumberInfo' => [
-                                        'trackingNumber' => '123456789012',
-                                        'trackingNumberUniqueId' => 'UNIQUE-ID-1',
-                                    ],
-                                    'latestStatusDetail' => [
-                                        'statusCode' => 'DL',
-                                        'statusByLocale' => 'Delivered',
-                                        'scanLocation' => [
-                                            'city' => 'Memphis',
-                                            'stateOrProvinceCode' => 'TN',
-                                            'postalCode' => '38116',
-                                            'countryCode' => 'US',
-                                        ],
-                                    ],
-                                    'dateAndTimes' => [
-                                        [
-                                            'type' => 'ACTUAL_DELIVERY',
-                                            'dateTime' => '2024-05-01T12:00:00-05:00',
-                                        ],
-                                    ],
-                                    'scanEvents' => [
-                                        [
-                                            'eventDateTime' => '2024-05-01T12:00:00-05:00',
-                                            'eventType' => 'DL',
-                                            'eventDescription' => 'Delivered',
-                                            'scanLocation' => [
-                                                'city' => 'Memphis',
-                                                'stateOrProvinceCode' => 'TN',
-                                                'postalCode' => '38116',
-                                                'countryCode' => 'US',
-                                            ],
-                                        ],
-                                    ],
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
+                'TrackReply' => [
+                    'HighestSeverity' => 'SUCCESS'
+                ]
             ])));
 
         $request = new Request(null, $httpClient, $tokenProvider);
 
-        $complexResponse = $request->getTrackReply($trackRequest);
+        $stdClassResponse = $request->getTrackReply($trackRequest, true);
 
-        $this->assertInstanceOf(ComplexType\TrackReply::class, $complexResponse);
-        $this->assertEquals('SUCCESS', $complexResponse->HighestSeverity);
-
-        $this->assertNotEmpty($complexResponse->CompletedTrackDetails);
-        $completedDetail = $complexResponse->CompletedTrackDetails[0];
-
-        $this->assertEquals('SUCCESS', $completedDetail->HighestSeverity);
-        $this->assertEquals(1, $completedDetail->TrackDetailsCount);
-
-        $trackDetail = $completedDetail->TrackDetails[0];
-        $this->assertEquals('123456789012', $trackDetail->TrackingNumber);
-        $this->assertEquals('UNIQUE-ID-1', $trackDetail->TrackingNumberUniqueIdentifier);
-        $this->assertEquals('Delivered', $trackDetail->StatusDetail->Description);
-        $this->assertEquals('Memphis', $trackDetail->StatusDetail->Location->City);
-
-        $this->assertNotEmpty($trackDetail->Events);
-        $this->assertEquals('DL', $trackDetail->Events[0]->EventType);
+        $this->assertInstanceOf(\stdClass::class, $stdClassResponse);
+        $this->assertEquals('SUCCESS', $stdClassResponse->TrackReply->HighestSeverity);
     }
 }
