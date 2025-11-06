@@ -7,6 +7,8 @@ namespace FedEx;
  * @author      Jeremy Dunn <jeremy@jsdunn.info>
  * @package     PHP FedEx API wrapper
  */
+use FedEx\Http\HttpClient;
+
 abstract class AbstractRequest
 {
     /**
@@ -22,9 +24,24 @@ abstract class AbstractRequest
     /**
      * SoapClient object
      *
-     * @var SoapClient
+     * @var SoapClient|null
      */
     private $soapClient;
+
+    /**
+     * @var HttpClient|null
+     */
+    private $httpClient;
+
+    /**
+     * @var bool
+     */
+    protected $useProductionEndpoint = false;
+
+    /**
+     * @var bool
+     */
+    protected static $usesSoap = true;
 
     /**
      * Full, absolute path to WSDL file
@@ -45,9 +62,15 @@ abstract class AbstractRequest
      *
      * @param \SoapClient|null $soapClient
      */
-    public function __construct(\SoapClient $soapClient = null)
+    public function __construct(?\SoapClient $soapClient = null, ?HttpClient $httpClient = null)
     {
-        $this->soapClient = $soapClient ?: new \SoapClient(static::getWsdlPath(), ['trace' => true]);
+        if (static::$usesSoap) {
+            $this->soapClient = $soapClient ?: new \SoapClient(static::getWsdlPath(), ['trace' => true]);
+        } else {
+            $this->soapClient = $soapClient;
+        }
+
+        $this->httpClient = $httpClient;
     }
 
     /**
@@ -69,5 +92,52 @@ abstract class AbstractRequest
     public function getSoapClient()
     {
         return $this->soapClient;
+    }
+
+    /**
+     * Returns the HttpClient instance used for REST requests
+     *
+     * @return HttpClient
+     */
+    protected function getHttpClient(): HttpClient
+    {
+        if (!$this->httpClient) {
+            $this->httpClient = new HttpClient();
+        }
+
+        return $this->httpClient;
+    }
+
+    /**
+     * Toggle between production and test environments.
+     *
+     * @param bool $useProductionEndpoint
+     * @return $this
+     */
+    public function useProductionEnvironment(bool $useProductionEndpoint = true)
+    {
+        $this->useProductionEndpoint = $useProductionEndpoint;
+
+        return $this;
+    }
+
+    /**
+     * Builds a fully-qualified endpoint URL for REST requests.
+     *
+     * @param string $path
+     * @return string
+     */
+    protected function resolveEndpoint(string $path = ''): string
+    {
+        $base = $this->useProductionEndpoint ? static::PRODUCTION_URL : static::TESTING_URL;
+        if ($base === null) {
+            throw new \RuntimeException('Endpoint URL not configured for this request.');
+        }
+
+        if ($path === '') {
+            return rtrim($base, '/');
+        }
+
+        return rtrim($base, '/') . '/' . ltrim($path, '/');
     }
 }
